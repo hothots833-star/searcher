@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/manifoldco/promptui"
 )
 
 var writer = bufio.NewWriter(os.Stdout)
@@ -19,28 +21,24 @@ func write(s string) {
 }
 func main() {
 	defer writer.Flush()
-	extensions := []string{".txt", ".md", ".log", ".json", ".csv", ".xml", ".yaml", ".yml", ".conf", ".ini", ".html", ".css", ".go", ".py", ".js", ".sql", ".sh"}
 	scannerConsole := bufio.NewScanner(os.Stdin)
-	write("введи название файла: ")
-	writer.Flush()
-	if !scannerConsole.Scan() {
-		write("ошибка чтения с консоли\n")
-		return
-	}
-	fileName := strings.TrimSpace(scannerConsole.Text())
-	write("выбери расширение файла из списка:\n0. .txt     4. .csv     8. .ini     12. .html\n1. .md      5. .yaml    9. .go      13. .css\n2. .log     6. .xml     10. .py     14. .sql\n3. .json    7. .conf    11. .js     15. .sh\n")
-	writer.Flush()
-	scannerConsole.Scan()
-	extension, err := strconv.Atoi(scannerConsole.Text())
+	files, err := os.ReadDir(".")
 	if err != nil {
-		write("Введите число, а не текст\n")
+		write("ошибка поиска файлов в директории\n")
 		return
 	}
-	if extension < 0 || extension >= len(extensions) {
-		write("Такого номера расширения нет (введите от 0 до " + strconv.Itoa(len(extensions)-1) + ")\n")
+	var fileNames []string
+	for _, entry := range files {
+		if !entry.IsDir() {
+			fileNames = append(fileNames, entry.Name())
+		}
+	}
+	prompt := promptui.Select{Label: "выбери файл:", Items: fileNames}
+	_, fileName, err := prompt.Run()
+	if err != nil {
+		write("ошибка выбора файла")
 		return
 	}
-	fileName += extensions[extension]
 	file, err := os.Open(fileName)
 	if err != nil {
 		write("ошибка при открытии файла\n")
@@ -62,7 +60,7 @@ func main() {
 		line := strings.Fields(scannerFile.Text())
 		for wordIdx, word := range line {
 			if word == input {
-				write("найдено!\nномер строки : " + strconv.Itoa(lineNum) + "\nномер слова: " + strconv.Itoa(wordIdx+1) + "\n")
+				write("найдено!\nномер строки: " + strconv.Itoa(lineNum) + "\nномер слова: " + strconv.Itoa(wordIdx+1) + "\n\n")
 				found = true
 			}
 		}
